@@ -13,7 +13,8 @@ export const getUsers = (req, res) => {
 });
 };
 export const getUser = (req, res) => {
-    pool.query('select * from users', (error, results)=> {
+    const id = req.params.id;
+    pool.execute('select * from users where id = ?',[id], (error, results)=> {
         if (error) {
             res.status(500).json({msg: error, users: []});
             return;
