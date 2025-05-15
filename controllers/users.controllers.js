@@ -1,4 +1,5 @@
 import { pool } from "../db/db.js";
+import { getSalt, hashPassword } from "../utils/hash.js";
 
 
 
@@ -25,7 +26,10 @@ export const getUser = (req, res) => {
 };
 export const postUser = (req, res) => {
     const { name, username, password, age} = req.body;
-    pool.execute("insert into users (name,username, password, age) values (?, ?, ?, ?)", [name, username, password, age], (error, results)=> {
+    const salt = getSalt();
+    const hash = hashPassword(password,salt);
+    const hashedPassword = salt + hash;
+    pool.execute("insert into users (name,username, password, age) values (?, ?, ?, ?)", [name, username, hashedPassword, age], (error, results)=> {
         if (error) {
             res.status(500).json({msg: error, users: []});
             return;
@@ -66,7 +70,9 @@ export const login = (req, res) => {
             res.status(401).json({isLogin: false, msg: "No autorizado",  user: {} });
             return;
         }
-        if (results[0].password  === password) {
+        const salt = results[0].password.substring(0, process.env.SALT_SIZE);
+        const hash = hashPassword(password,salt);
+        if (results[0].password === salt + hash) {
             res.status(200).json({isLogin: true, msg: "OK",  user: results[0] });
         }else{
             res.status(401).json({isLogin: false, msg: "Invalid credentials",  user: {} });
